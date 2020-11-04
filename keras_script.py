@@ -7,19 +7,19 @@ character-by-character. Note that it is fairly unusual to
 do character-level machine translation, as word-level
 models are more common in this domain.
 **Summary of the algorithm**
-- We start with input sequences from a domain (e.g. English sentences)
+- We start with train_images sequences from a domain (e.g. English sentences)
     and corresponding target sequences from another domain
     (e.g. French sentences).
-- An encoder LSTM turns input sequences to 2 state vectors
+- An encoder LSTM turns train_images sequences to 2 state vectors
     (we keep the last LSTM state and discard the outputs).
 - A decoder LSTM is trained to turn the target sequences into
     the same sequence but offset by one timestep in the future,
     a training process called "teacher forcing" in this context.
     It uses as initial state the state vectors from the encoder.
     Effectively, the decoder learns to generate `targets[t+1...]`
-    given `targets[...t]`, conditioned on the input sequence.
-- In inference mode, when we want to decode unknown input sequences, we:
-    - Encode the input sequence into state vectors
+    given `targets[...t]`, conditioned on the train_images sequence.
+- In inference mode, when we want to decode unknown train_images sequences, we:
+    - Encode the train_images sequence into state vectors
     - Start with a target sequence of size 1
         (just the start-of-sequence character)
     - Feed the state vectors and 1-char target sequence
@@ -83,7 +83,7 @@ max_encoder_seq_length = max([len(txt) for txt in input_texts])
 max_decoder_seq_length = max([len(txt) for txt in target_texts])
 
 print('Number of samples:', len(input_texts))
-print('Number of unique input tokens:', num_encoder_tokens)
+print('Number of unique train_images tokens:', num_encoder_tokens)
 print('Number of unique output tokens:', num_decoder_tokens)
 print('Max sequence length for inputs:', max_encoder_seq_length)
 print('Max sequence length for outputs:', max_decoder_seq_length)
@@ -116,7 +116,7 @@ for i, (input_text, target_text) in enumerate(zip(input_texts, target_texts)):
             decoder_target_data[i, t - 1, target_token_index[char]] = 1.
     decoder_input_data[i, t + 1:, target_token_index[' ']] = 1.
     decoder_target_data[i, t:, target_token_index[' ']] = 1.
-# Define an input sequence and process it.
+# Define an train_images sequence and process it.
 encoder_inputs = Input(shape=(None, num_encoder_tokens))
 encoder = LSTM(latent_dim, return_state=True)
 encoder_outputs, state_h, state_c = encoder(encoder_inputs)
@@ -150,7 +150,7 @@ model.save('s2s.h5')
 
 # Next: inference mode (sampling).
 # Here's the drill:
-# 1) encode input and retrieve initial decoder state
+# 1) encode train_images and retrieve initial decoder state
 # 2) run one step of decoder with this initial state
 # and a "start of sequence" token as target.
 # Output will be the next target token
@@ -179,7 +179,7 @@ reverse_target_char_index = dict(
 
 
 def decode_sequence(input_seq):
-    # Encode the input as state vectors.
+    # Encode the train_images as state vectors.
     states_value = encoder_model.predict(input_seq)
 
     # Generate empty target sequence of length 1.
